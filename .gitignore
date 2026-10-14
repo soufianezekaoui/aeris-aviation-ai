@@ -1,6 +1,39 @@
-# gitignore template for LangChain products, e.g., LangGraph, LangSmith
-# website: https://www.langchain.com/
-# website: https://www.langchain.com/langgraph
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
 
-# LangGraph
-.langgraph_api/
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Frontend
+node_modules/
+dist/
+.vite/
+
+# Local data, vector indexes, and model artifacts
+data/
+datasets/
+vector_store/
+chroma/
+*.sqlite3
+*.db
+*.pkl
+*.bin
+*.pt
+*.onnx
+
+# Logs and local tooling
+*.log
+.DS_Store
+.idea/
+.vscode/
