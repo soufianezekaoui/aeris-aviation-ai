@@ -1,0 +1,26 @@
+{
+  "documents": [
+    {
+      "doc_id": "spanair_5022",
+      "file": "raw/spanair_flight_5022.pdf",
+      "title": "Report A-032/2008: Accident involving a McDonnell Douglas DC-9-82 (MD-82), registration EC-HFP, operated by Spanair, at Madrid-Barajas Airport, on 20 August 2008",
+      "publisher": "CIAIAC (Comisión de Investigación de Accidentes e Incidentes de Aviación Civil), Spain",
+      "report_ref": "A-032/2008",
+      "language": "en",
+      "url": null,
+      "published": null,
+      "notes": "Title and report reference are taken from the report's cover page. Fill in `url` and `published` from the original source."
+    },
+    {
+      "doc_id": "ups_6",
+      "file": "raw/ups_flight_6.pdf",
+      "title": "Uncontained Cargo Fire Leading to Loss of Control Inflight and Uncontrolled Descent Into Terrain: Boeing 747-44AF N571UP, Dubai, United Arab Emirates, 03 September 2010",
+      "publisher": "General Civil Aviation Authority of the United Arab Emirates, Air Accident Investigation Sector (AAIS)",
+      "report_ref": "AAIS Case Reference 13/2010",
+      "language": "en",
+      "url": null,
+      "published": null,
+      "notes": "Cover page marks this as the FINAL report. Fill in `url` and `published` from the original source."
+    }
+  ]
+}
