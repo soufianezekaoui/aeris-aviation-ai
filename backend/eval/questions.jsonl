@@ -1,0 +1,17 @@
+{"question": "Why did the takeoff warning system not alert the crew?", "expected_doc": "spanair_5022", "expected_keywords": ["TOWS", "did not"]}
+{"question": "In what position were the flaps and slats found?", "expected_doc": "spanair_5022", "expected_keywords": ["flaps", "slats", "retracted"]}
+{"question": "How many people were on board the aircraft?", "expected_doc": "spanair_5022", "expected_keywords": ["172"]}
+{"question": "How many people died in the accident?", "expected_doc": "spanair_5022", "expected_keywords": ["154"]}
+{"question": "What does the report say about the Minimum Equipment List and inoperative equipment?", "expected_doc": "spanair_5022", "expected_keywords": ["MEL", "inoperative"]}
+{"question": "At which airport did the accident happen?", "expected_doc": "spanair_5022", "expected_keywords": ["Madrid-Barajas"]}
+{"question": "What does the report say about the RAT probe heater?", "expected_doc": "spanair_5022", "expected_keywords": ["RAT", "heater"]}
+{"question": "What cargo ignited and started the fire on the 747?", "expected_doc": "ups_6", "expected_keywords": ["lithium", "battery", "pallet"]}
+{"question": "What happened to the pilots' oxygen masks during the smoke?", "expected_doc": "ups_6", "expected_keywords": ["smoke", "oxygen", "mask"]}
+{"question": "Did the crew consider diverting to Doha?", "expected_doc": "ups_6", "expected_keywords": ["Doha"]}
+{"question": "Which aircraft registration and type were involved in the UPS accident?", "expected_doc": "ups_6", "expected_keywords": ["N571UP", "747"]}
+{"question": "What does the report say about dangerous goods in the cargo?", "expected_doc": "ups_6", "expected_keywords": ["dangerous goods"]}
+{"question": "Why was Bahrain considered as a diversion airport?", "expected_doc": "ups_6", "expected_keywords": ["Bahrain"]}
+{"question": "What does the report say about the uncontained fire?", "expected_doc": "ups_6", "expected_keywords": ["uncontained"]}
+{"question": "What is the capital of France?", "should_refuse": true}
+{"question": "How do I bake sourdough bread at home?", "should_refuse": true}
+{"question": "Who won the 2022 football World Cup?", "should_refuse": true}
