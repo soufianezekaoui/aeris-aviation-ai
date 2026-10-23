@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { color-scheme: dark; }
+  body {
+    @apply bg-navy-900 text-white font-sans antialiased;
+    /* blueprint grid: dark industrial texture without any image or network request */
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  :focus-visible { @apply outline outline-2 outline-offset-2 outline-safety-yellow; }
+}
+
+@layer components {
+  .hazard-stripe {
+    height: 8px;
+    background: repeating-linear-gradient(-45deg, #ffc72c 0 12px, #0a101c 12px 24px);
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded bg-safety-orange px-5 py-2.5
+           text-sm font-bold uppercase tracking-wide text-navy-950 transition
+           hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .chip {
+    @apply rounded-full border border-navy-600 px-3 py-1 text-xs text-white/80 transition
+           hover:border-safety-orange hover:text-white;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

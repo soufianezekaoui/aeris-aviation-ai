@@ -1,5 +1,29 @@
 # AERIS Architecture
 
+## Implemented today (Phase 1)
+The diagrams below describe the target architecture. What exists now is the knowledge-retrieval
+half, with Chroma standing in for pgvector (see TD-02):
+
+```mermaid
+flowchart LR
+    PDF[PDF reports + manifest.json] --> X[Extract - pypdf]
+    X --> C[Clean - headers, TOC, hyphens]
+    C --> K[Chunk per page + section]
+    K --> E[Embeddings - fastembed / OpenAI]
+    E --> V[(Chroma - cosine)]
+    UI[React + TS + Tailwind] -->|POST /api/ask| API[FastAPI]
+    API --> R[Retrieve top-k + relevance gate]
+    R <--> V
+    R -->|no evidence| N[insufficient evidence - LLM not called]
+    R --> L[LLM - Anthropic / OpenAI / none]
+    L --> CV[Citation verification]
+    CV --> API
+    API -->|answer + sources + status| UI
+```
+
+Not built yet: simulation service, checklist service, orchestrator/agent tools, voice, AWS.
+
+
 ## High-level RAG + simulation architecture
 
 ```mermaid
