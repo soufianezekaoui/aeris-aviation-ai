@@ -163,6 +163,109 @@ Live LLM and `fastembed` model calls are exercised only through fakes in the tes
 network/keys); verify them once locally with `aeris ask`. No multi-turn memory, re-ranking or
 hybrid (BM25) search yet: candidates to evaluate against the eval set.
 
+## Database (simulation + checklists, Phase 2)
+
+Simulation sessions, state snapshots, alerts and checklist progress live in a relational DB
+(SQLAlchemy 2). **Nothing to set up:** with `DATABASE_URL` blank, a SQLite file is created at
+`backend/data/aeris.db` (git-ignored) and the tables are created on first use.
+
+To use **PostgreSQL** instead:
+```bash
+docker compose up -d                                   # from the repo root
+pip install -e ".[postgres]"                           # driver
+# in .env:  DATABASE_URL=postgresql://aeris:aeris@localhost:5432/aeris
+```
+`postgresql://` URLs are accepted as-is. Passwords are never printed in logs or errors.
+
+Design notes:
+- **Isolation by construction (RULE-06).** Every child table (`sim_state_snapshots`, `sim_alerts`,
+  `sim_checklist_items`, `sim_checklist_events`) has a `session_id` foreign key with
+  `ON DELETE CASCADE`; deleting a session removes everything that belongs to it.
+- **Timestamps are always timezone-aware UTC** on both backends; naive datetimes are rejected.
+- **Lazy initialisation.** The DB is opened on the first simulation request, so a database
+  problem returns a clear `database_unavailable` error and **never breaks document Q&A**.
+- Tables are created with `create_all` (no migration tool yet). Adding Alembic is a to-do before
+  any schema change on a database that holds data you care about.
+
+The DB tests run on SQLite **and** on a real embedded PostgreSQL when available:
+`pip install -e ".[dev,pgtest]"`. Without `pgserver` the PostgreSQL variants are skipped.
+
+## Simulation engine (synthetic flight data)
+
+> **Everything here is synthetic (RULE-04).** The aircraft is fictional ("generic twin-jet"), the
+> numbers and thresholds are illustrative, and the simulated clock starts on a future date
+> (2030-01-01) so it can never be mistaken for real data.
+
+```bash
+aeris sim scenarios        # list the built-in scenarios
+aeris sim seed             # create one demo session per scenario (idempotent; --force to repeat)
+aeris sim list
+aeris sim delete <id>
+```
+
+| Scenario | What happens | Alerts raised |
+| -------- | ------------ | ------------- |
+| `nominal_short_haul` | taxi → takeoff → climb → cruise → descent → approach → landing | none |
+| `takeoff_config_discrepancy` | flaps not at the briefed setting during takeoff / initial climb | `TAKEOFF_CONFIG` (critical), t=150→230 s |
+| `unstable_approach` | high sink rate and low speed on short final | `SINK_RATE` (critical), `SPEED_LOW` (caution) |
+
+- **Deterministic.** Keyframes are interpolated and small *seeded* noise is added, so the same
+  `(scenario, seed)` always gives identical data (reproducible tests and sessions).
+- **One snapshot per 5 simulated seconds**: altitude, airspeed, vertical speed, heading, flaps,
+  gear, N1, fuel and phase.
+- **Alerts are rules over the data** (`sim/alerts.py`), debounced over two samples, stored as
+  intervals `[t_start, t_end)`; `t_end = null` means still active at the end of the data.
+  Levels map to the UI palette: caution = yellow, warning = orange, critical = red.
+- **A session is created atomically** (all snapshots, alerts and checklist items, or nothing) and
+  capped by `MAX_SIM_SESSIONS` (default 50) because creation is unauthenticated.
+
+### Checklists (review tracking)
+Three **generic training** checklists (departure, approach, debrief). Statuses are `not_reviewed`,
+`reviewed`, `needs_attention` and describe *review progress inside AERIS only* (RULE-07). Items are
+deliberately worded "Review …" / "Note …", never as procedures to perform, and a test enforces
+that wording so it cannot drift.
+
+### Simulation API
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| GET | `/api/sim/scenarios` | built-in synthetic scenarios (no DB needed) |
+| POST | `/api/sim/sessions` | create a session `{scenario_id, seed?, name?}` → 201 |
+| GET | `/api/sim/sessions` · `/{id}` | list / detail (newest first) |
+| DELETE | `/api/sim/sessions/{id}` | delete a session and everything in it → 204 |
+| GET | `/api/sim/sessions/{id}/state?t=` | simulated state, latest or as of simulated time `t` |
+| GET | `/api/sim/sessions/{id}/timeline?step=` | downsampled series + alert intervals (for charts) |
+| GET | `/api/sim/sessions/{id}/alerts?t=` | alerts raised up to `t`, each with `active` at `t` |
+| GET | `/api/sim/sessions/{id}/checklists` | checklist review progress |
+| PATCH | `/api/sim/sessions/{id}/checklists/items/{item_id}` | record a review status `{status, note?}` |
+
+Simulated state is **read-only**. The only write besides creating/deleting a whole session is a
+checklist *review status* (RULE-08).
+
+**Every response says what it is (RULE-04).** `synthetic: true`, `data_source: "synthetic
+simulation (not live telemetry)"` and the safety disclaimer are on every top-level response.
+
+**State responses disclose freshness (RULE-05).** Each carries `session_id`, `snapshot_time`
+(simulated UTC), `generated_at` (real UTC), and:
+
+| `freshness` | Meaning |
+| ----------- | ------- |
+| `latest` | no `t` given: the final snapshot of the scenario |
+| `exact` | a sample exists at exactly `t` |
+| `held` | no sample at `t`; the previous one is shown with `age_s` and a warning |
+| `stale` | `t` is past the end of the simulation; the final snapshot is shown with a warning |
+| `absent` | no snapshot exists; `state` is `null` (nothing is invented) |
+
+**Isolation (RULE-06 / BR-07).** Every query filters on `session_id`. A checklist item that
+belongs to another session answers `404 item_not_found`, exactly like an item that does not
+exist, so ids cannot be probed across sessions. Tests attack this directly.
+
+Errors are typed: `session_not_found` / `item_not_found` (404), `unknown_scenario` /
+`invalid_status` (422), `session_limit_reached` (409), `database_unavailable` (503).
+
+> **No authentication yet.** Anyone who can reach the API can create sessions and record
+> reviews. Fine for local learning use; add auth before exposing it (see roadmap).
+
 ## Quality checks
 ```bash
 ruff check src tests
@@ -181,6 +284,8 @@ backend/
     ingestion/       # manifest, extract, clean, chunk, pipeline
     rag/             # embeddings, store, retrieval, prompts, service, llm
     evaluation.py    # retrieval metrics behind `aeris eval`
+    db/              # SQLAlchemy models, UTC type, engine/session management
+    sim/             # scenarios, generator, alert rules, checklists, session service
     cli.py           # `aeris` command
     main.py          # app factory
   eval/questions.jsonl   # retrieval eval set

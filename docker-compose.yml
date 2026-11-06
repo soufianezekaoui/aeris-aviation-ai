@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aeris
+      POSTGRES_PASSWORD: aeris       # local development only
+      POSTGRES_DB: aeris
+    ports:
+      - "127.0.0.1:5432:5432"        # bound to localhost only
+    volumes:
+      - aeris_pgdata:/var/lib/postgresql/data
+volumes:
+  aeris_pgdata:
