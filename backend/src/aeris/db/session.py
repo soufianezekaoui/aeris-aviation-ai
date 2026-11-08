@@ -107,3 +107,4 @@ def session_scope(settings: Settings | None = None) -> Iterator[Session]:
     init_db(engine)
     with sessionmaker(engine, expire_on_commit=False)() as session:
         yield session
+

@@ -8,6 +8,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from aeris.config import get_settings
+from aeris.db.errors import DatabaseUnavailableError
+from aeris.db.session import session_scope
 from aeris.evaluation import evaluate, load_items
 from aeris.ingestion.manifest import DocumentEntry, load_manifest
 from aeris.ingestion.pipeline import prepare_document
@@ -16,6 +18,9 @@ from aeris.rag.errors import ConfigError, IndexEmptyError, IndexMismatchError
 from aeris.rag.llm import build_chat_model
 from aeris.rag.service import RagService
 from aeris.rag.store import index_stats, open_store, replace_document, reset_store
+from aeris.sim.errors import SessionNotFoundError
+from aeris.sim.scenarios import SCENARIOS
+from aeris.sim.service import create_session, delete_session, list_sessions
 
 
 def _select(entries: list[DocumentEntry], doc_ids: list[str] | None) -> list[DocumentEntry]:
@@ -111,6 +116,44 @@ def _cmd_eval(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_sim_scenarios(_: argparse.Namespace) -> int:
+    for sc in SCENARIOS.values():
+        print(f"{sc.id:30} {sc.duration_s:>5}s  {sc.name}")
+        print(f"{'':30}        {sc.learning_goal}")
+    return 0
+
+
+def _cmd_sim_seed(args: argparse.Namespace) -> int:
+    ids = [args.scenario] if args.scenario else list(SCENARIOS)
+    with session_scope() as db:
+        existing = {s.scenario_id for s in list_sessions(db)}
+        for scenario_id in ids:
+            if scenario_id in existing and not args.force:
+                print(f"skip {scenario_id}: a session already exists (use --force)")
+                continue
+            sim = create_session(db, scenario_id)
+            print(f"created {sim.id}  {sim.name}  ({len(sim.alerts)} alert interval(s))")
+    return 0
+
+
+def _cmd_sim_list(_: argparse.Namespace) -> int:
+    with session_scope() as db:
+        sessions = list_sessions(db)
+        for s in sessions:
+            created = f"{s.created_at:%Y-%m-%d %H:%M}Z"
+            print(f"{s.id}  {s.scenario_id:28} {s.duration_s:>5}s  created {created}")
+        if not sessions:
+            print("no sessions. Create some with:  aeris sim seed")
+    return 0
+
+
+def _cmd_sim_delete(args: argparse.Namespace) -> int:
+    with session_scope() as db:
+        delete_session(db, args.session_id)
+    print("deleted")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="aeris", description="AERIS command-line tools")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -140,6 +183,19 @@ def build_parser() -> argparse.ArgumentParser:
     ev.add_argument("--top-k", type=int)
     ev.add_argument("--sweep", action="store_true", help="show metrics across thresholds")
     ev.set_defaults(func=_cmd_eval)
+
+    sim = sub.add_parser("sim", help="synthetic flight-data simulation sessions")
+    simsub = sim.add_subparsers(dest="sim_command", required=True)
+    simsub.add_parser("scenarios", help="list built-in scenarios").set_defaults(
+        func=_cmd_sim_scenarios)
+    seed = simsub.add_parser("seed", help="create demo sessions (one per scenario)")
+    seed.add_argument("--scenario", choices=list(SCENARIOS))
+    seed.add_argument("--force", action="store_true", help="create even if one exists")
+    seed.set_defaults(func=_cmd_sim_seed)
+    simsub.add_parser("list", help="list sessions").set_defaults(func=_cmd_sim_list)
+    dele = simsub.add_parser("delete", help="delete a session and everything in it")
+    dele.add_argument("session_id")
+    dele.set_defaults(func=_cmd_sim_delete)
     return parser
 
 
@@ -147,7 +203,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
-    except (ConfigError, IndexMismatchError, IndexEmptyError) as exc:
+    except (ConfigError, IndexMismatchError, IndexEmptyError, DatabaseUnavailableError,
+            SessionNotFoundError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
