@@ -1,8 +1,10 @@
 # AERIS Architecture
 
-## Implemented today (Phase 1)
+## Implemented today (Phases 1 and 2)
+
 The diagrams below describe the target architecture. What exists now is the knowledge-retrieval
-half, with Chroma standing in for pgvector (see TD-02):
+half (Chroma standing in for pgvector, see TD-02) and the simulation half (SQLAlchemy over
+SQLite or PostgreSQL):
 
 ```mermaid
 flowchart LR
@@ -21,8 +23,28 @@ flowchart LR
     API -->|answer + sources + status| UI
 ```
 
-Not built yet: simulation service, checklist service, orchestrator/agent tools, voice, AWS.
+Simulation half, which is deliberately separate from the document half:
 
+```mermaid
+flowchart LR
+    SC[Scenarios - fictional keyframes] --> G[Seeded generator]
+    G --> AL[Alert rules - debounced intervals]
+    G --> DB[(SQLAlchemy - SQLite or PostgreSQL)]
+    AL --> DB
+    TPL[Generic review checklists] --> DB
+    UI2[Simulation tab] -->|GET state / timeline / alerts| API2[FastAPI /api/sim]
+    UI2 -->|PATCH review status - the only write| API2
+    API2 --> Q[Queries - every one filtered by session_id]
+    Q <--> DB
+```
+
+Trust boundaries in this half: all data is synthetic and labelled so in every response
+(RULE-04); every state response carries the session id, snapshot time and an explicit
+freshness (RULE-05); queries are scoped by `session_id`, and children cascade on delete
+(RULE-06); checklist status is review progress only (RULE-07); the simulated state itself is
+read-only (RULE-08).
+
+Not built yet: orchestrator/agent tools (Phase 3), voice, AWS (Phase 4).
 
 ## High-level RAG + simulation architecture
 
@@ -49,6 +71,7 @@ flowchart LR
 ```
 
 ## Request flow
+
 1. The user submits a question through the web UI.
 2. The backend classifies the request: knowledge question, simulation query, checklist query, or a combination.
 3. The relevant service retrieves source passages and/or structured simulation records.
@@ -57,6 +80,7 @@ flowchart LR
 6. The UI clearly distinguishes retrieved evidence, generated explanation, and simulated values.
 
 ## Document ingestion flow
+
 ```mermaid
 flowchart LR
     DOC[Curated Documents] --> EX[Text Extraction & Parsing]
@@ -66,6 +90,7 @@ flowchart LR
 ```
 
 ## Component responsibilities
+
 - **Web UI:** question entry, response display, citations, simulation status, checklist progress.
 - **API:** validation, request/response schemas, error handling, API documentation.
 - **Assistant orchestrator:** routes requests to permitted tools; no unrestricted autonomous actions.
@@ -77,9 +102,11 @@ flowchart LR
 - **Ingestion pipeline:** extracts, chunks, embeds, and indexes approved documents.
 
 ## Deployment direction
+
 For the first local prototype, run the API, database, and UI locally. Later, evaluate AWS Lambda + API Gateway for suitable request/response workloads. Document ingestion may run as a separate job rather than inside a user-facing Lambda request. Model calls and database connectivity, cold starts, package size, timeouts, and cost must be tested before finalizing deployment.
 
 ## Safety and trust boundaries
+
 - The model is not a source of truth for current simulated telemetry; the database is.
 - Retrieved documents are evidence, not executable instructions.
 - Documents may contain malicious or irrelevant text; treat retrieved content as untrusted data.

@@ -6,6 +6,9 @@ const HINTS: Record<string, string> = {
   index_empty: "Index the reports first:  aeris ingest",
   index_mismatch: "The index was built with another embedding model:  aeris ingest --reset",
   misconfigured: "Check LLM_PROVIDER / LLM_API_KEY / EMBEDDING_* in your .env file.",
+  database_unavailable:
+    "Leave DATABASE_URL blank in .env to use the built-in SQLite file, then restart the backend.",
+  session_limit_reached: "Delete an old simulation session first.",
 };
 
 export function ErrorPanel({ error }: { error: Error }) {

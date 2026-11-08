@@ -1,15 +1,25 @@
-/** ANSI Z535-style signal icons, drawn inline (no network, no image assets). */
 type Kind = "caution" | "warning" | "danger" | "notice";
 
 const COLORS: Record<Kind, { fill: string; ink: string }> = {
-  caution: { fill: "#FFC72C", ink: "#0A101C" }, // yellow triangle
-  warning: { fill: "#FF6A13", ink: "#0A101C" }, // orange triangle
-  danger: { fill: "#E5322D", ink: "#FFFFFF" }, // red
-  notice: { fill: "#FFFFFF", ink: "#0A101C" }, // white-on-navy information
+  caution: { fill: "#FFC72C", ink: "#0A101C" },   // yellow triangle
+  warning: { fill: "#FF6A13", ink: "#0A101C" },   // orange triangle
+  danger: { fill: "#E5322D", ink: "#FFFFFF" },    // red
+  notice: { fill: "#FFFFFF", ink: "#0A101C" },    // white-on-navy information
 };
 
-export function SafetyIcon({ kind, size = 20 }: { kind: Kind; size?: number }) {
-  const { fill, ink } = COLORS[kind];
+// switching to inline SVGs for safety icons to avoid dependency on external assets and to allow for easy color inversion and sizing.
+export function SafetyIcon({
+  kind,
+  size = 20,
+  inverted = false,
+}: {
+  kind: Kind;
+  size?: number;
+  inverted?: boolean;
+}) {
+  const base = COLORS[kind];
+  const fill = inverted ? base.ink : base.fill;
+  const ink = inverted ? base.fill : base.ink;
   const common = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": true } as const;
   if (kind === "danger") {
     return (

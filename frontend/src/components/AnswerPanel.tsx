@@ -46,7 +46,7 @@ export function AnswerPanel({ result, onCite }: Props) {
           Answer
         </h2>
         <span className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-bold uppercase ${TONE[s.tone]}`}>
-          {s.tone !== "ok" && <SafetyIcon kind={s.tone === "danger" ? "danger" : "caution"} size={14} />}
+          {s.tone !== "ok" && <SafetyIcon kind={s.tone === "danger" ? "danger" : "caution"} size={14} inverted />}
           {s.label}
         </span>
         <span className="ml-auto font-mono text-[11px] text-navy-600">
