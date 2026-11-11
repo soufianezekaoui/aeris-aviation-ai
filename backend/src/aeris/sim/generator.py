@@ -29,7 +29,8 @@ class Snap:
 
 def _frame_at(frames: tuple[Keyframe, ...], times: list[int], t: float) -> Keyframe:
     
-    return frames[max(bisect.bisect_right(times, t) - 1, 0)]    # return the last frame at or before time t
+    # return the last frame at or before time t
+    return frames[max(bisect.bisect_right(times, t) - 1, 0)]
 
 
 def _lerp(frames: tuple[Keyframe, ...], times: list[int], t: float, attr: str) -> float:

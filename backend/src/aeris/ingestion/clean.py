@@ -8,7 +8,8 @@ from dataclasses import dataclass, field
 
 from aeris.ingestion.models import PageText
 
-EDGE_LINES = 3  # header/footer zone: first/last N non-empty lines of a page
+# header/footer zone: first/last N non-empty lines of a page
+EDGE_LINES = 3
 _LIGATURES = str.maketrans({"ﬁ": "fi", "ﬂ": "fl", "ﬀ": "ff", "ﬃ": "ffi", "ﬄ": "ffl"})
 _LEADER_RE = re.compile(r"\.{4,}|(?:\. ){4,}")
 
@@ -88,12 +89,12 @@ def _reflow(lines: list[str]) -> str:
     for line in lines:
         if not line:
             if out and out[-1]:
-                out.append("")  # paragraph break
+                out.append("")
             continue
         if out and out[-1]:
             prev = out[-1]
             if re.search(r"[A-Za-z]-$", prev) and line[:1].islower():
-                out[-1] = prev[:-1] + line  # "exam-" + "ple" -> "example"
+                out[-1] = prev[:-1] + line
                 continue
             if line[:1].islower() or prev.endswith(","):
                 out[-1] = f"{prev} {line}"
@@ -151,6 +152,6 @@ def clean_pages(pages: list[PageText]) -> tuple[list[PageText], CleaningReport]:
         text = _reflow([_normalise_line(line) for line in kept])
         if text:
             cleaned.append(PageText(page=page.page, text=text))
-        elif not had_toc:  # a pure TOC page is already counted in toc_pages
+        elif not had_toc:
             report.empty_pages.append(page.page)
     return cleaned, report

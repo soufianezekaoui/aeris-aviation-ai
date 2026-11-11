@@ -1,1 +1,0 @@
-# ingestion of PDF documents into structured text, including extraction, cleaning, and chunking of page content.
